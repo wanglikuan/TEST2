@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+#PBS -N TF1_v0                 # User assigned name 
+#PBS -q qgpu01                 # Queue name 
+#PBS -l nodes=1:ppn=6 -W x=GRES:gpu@1      
+#PBS -l walltime=72:00:00      # Max. execution time.
+#PBS -l mem=50gb               # Request 50 GB of total memory
+#PBS -j oe                     # Join output & error steams into a single file
+#PBS -V                        # Export users environment to execution host 
+#
+PY_FILE="./tf1.py"
+#
+# NOTE: ~2 mins.
+#
+#
+################################################################
+export OMP_NUM_THREADS=$PBS_NUM_PPN  
+export MPLBACKEND=AGG 
+export TF_CPP_MIN_LOG_LEVEL=2
+export CUDA_VISIBLE_DEVICE=1 
+
+NP=`cat $PBS_NODEFILE | wc -l`
+NN=`cat $PBS_NODEFILE | sort | uniq | tee /tmp/nodes.$$ | wc -l`
+GP=`cat $PBS_GPUFILE | wc -l`
+cat $PBS_NODEFILE > /tmp/nodefile.$$
+echo "----------------------------------------------------------" 
+echo `cat $PBS_NODEFILE`         
+echo `cat $PBS_GPUFILE`          
+echo "TOTAL CPU-CORE :" $NP      
+echo "TOTAL GPU-CARD :" $GP  
+echo "NODES      :" $PBS_NUM_NODES
+echo "PPN        :" $PBS_NUM_PPN 
+echo "JOB NAME   :" $PBS_JOBNAME 
+echo "JOB ID     :" $PBS_JOBID 
+echo "QUEUE      :" $PBS_QUEUE   
+echo "PROCESS WILL START AT : " 
+date
+
+cd $PBS_O_WORKDIR
+python $PY_FILE > result.out
+
+echo "----------------------------------------------------------" 
+echo "PROCESS END AT:" 
+date
+
+rm -f /tmp/nodefile.$$
+rm -f /tmp/nodes.$$
+module unload anaconda3-5.2.0
